@@ -1,0 +1,6 @@
+{
+  "js": {
+    "wrap_line_length": 80,
+    "indent_size": 2
+  }
+}
