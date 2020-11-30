@@ -1,0 +1,43 @@
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  font-family: Roboto, Arial, sans-serif;
+  font-weight: 400;
+}
+
+#stage-parent {
+  width: 100%;
+}
+
+#controls {
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  padding: 5px;
+  transform: translateX(-50%);
+  line-height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+#controls button {
+  padding: 5px;
+  margin-left: 3px;
+  margin-right: 3px;
+  border: none;
+  border-radius: 3px;
+  background-color: white;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#controls button:hover {
+  font-weight: bold;
+  background-color: silver;
+}

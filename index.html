@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="style.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons"
+    rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap"
+    rel="stylesheet">
+  <script src="https://unpkg.com/konva@7.1.9/konva.min.js"></script>
+  <title>Pattern Grid</title>
+</head>
+
+<body>
+  <div id="stage-parent">
+    <div id="container"></div>
+  </div>
+  <div id="controls">
+    Grid:
+    <button id="draw-grid"><span class="material-icons">grid_on</span></button>
+    <button id="delete-grid"><span
+        class="material-icons">delete_forever</span></button>
+    Rows:
+    <button id="add-row"><span
+        class="material-icons">exposure_plus_1</span></button>
+    <button id="sub-row"><span
+        class="material-icons">exposure_minus_1</span></button>
+    Columns:
+    <button id="add-col"><span
+        class="material-icons">exposure_plus_1</span></button>
+    <button id="sub-col"><span
+        class="material-icons">exposure_minus_1</span></button>
+  </div>
+  <script src="main.js"></script>
+</body>
+
+</html>
