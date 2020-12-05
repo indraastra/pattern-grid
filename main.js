@@ -6,8 +6,8 @@ const height = window.innerHeight;
 
 
 const ZOOM_SCALES_BY = 1.05;
-const MAX_ROWS = 125;
-const MAX_COLS = 125;
+const MAX_ROWS = 250;
+const MAX_COLS = 250;
 const GRID_STROKE_COLOR = '#4d2d52dd';
 const ROW_FILL_COLOR = 'rgba(200, 200, 200, .05)';
 const ROW_STROKE_COLOR = '#f49d376a';
@@ -326,6 +326,44 @@ class App {
     this.layer = new Konva.Layer();
     this.stage.add(this.layer);
 
+    // Help text.
+    const complexText = new Konva.Text({
+      x: width / 2,
+      y: height / 2,
+      text: `Instructions:\n\n1. Copy a pattern image from some source\n
+2. Paste image (Ctrl+V) onto this canvas\n
+3. Draw a grid over it using the controls above\n
+4. Refresh the page to start over`,
+      fontSize: 16,
+      fontFamily: 'Roboto',
+      fill: '#555',
+      width: 400,
+      padding: 20,
+      align: 'center',
+    });
+    complexText.offsetX(complexText.width() / 2);
+    complexText.offsetY(complexText.height() / 2);
+
+    const rect = new Konva.Rect({
+      x: width / 2 - 200,
+      y: height / 2 - complexText.height() / 2,
+      stroke: '#fada5e',
+      strokeWidth: 3,
+      fill: '#fafafa',
+      width: 400,
+      height: complexText.height(),
+      shadowColor: '#4d2d52',
+      shadowBlur: 10,
+      shadowOffsetX: 4,
+      shadowOffsetY: 4,
+      shadowOpacity: 0.2,
+      cornerRadius: 5,
+    });
+
+    // Add the shapes to the layer
+    this.layer.add(rect);
+    this.layer.add(complexText);
+
     this.resizeWindowHandler();
   }
 
@@ -342,9 +380,7 @@ class App {
     this.controls.querySelectorAll('button').forEach((el) => this
       .makeControlClickHandler(el));
     this.controls.querySelectorAll('form').forEach((form) => {
-      console.log(form);
       form.addEventListener('submit', (e) => {
-        console.log(e);
         this.updateGridFromInputs(this.selectedGrid);
         e.preventDefault();
       });
@@ -524,6 +560,7 @@ class App {
         this.stage.find('.element').forEach(element => {
           element.draggable(false);
         });
+        this.controls.querySelector('.lock>span').innerText = 'lock';
         this.lockState = States.LOCKED;
         break;
       }
@@ -531,6 +568,7 @@ class App {
         this.stage.find('.element').forEach(element => {
           element.draggable(true);
         });
+        this.controls.querySelector('.lock>span').innerText = 'lock_open';
         this.lockState = States.UNLOCKED;
         break;
       }
