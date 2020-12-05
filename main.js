@@ -4,10 +4,13 @@ const Konva = window.Konva;
 const width = window.innerWidth;
 const height = window.innerHeight;
 const ZOOM_SCALES_BY = 1.05;
-const ROW_FILL_COLOR = 'rgba(40, 40, 40, .1)';
-const ROW_STROKE_COLOR = 'rgba(0, 0, 0, .1)';
-const SELECTED_ROW_FILL_COLOR = 'rgba(150, 20, 20, 0.1)';
-const SELECTED_ROW_STROKE_COLOR = 'rgba(150, 20, 20, 0.5)';
+const GRID_STROKE_COLOR = '#CD5C5CAA';
+const ROW_FILL_COLOR = 'rgba(200, 200, 200, .1)';
+const ROW_STROKE_COLOR = '#f49d379a';
+const SELECTED_ROW_FILL_COLOR = '#fada5eaa';
+const SELECTED_ROW_STROKE_COLOR = '#f49d37dd';
+const COL_STROKE_COLOR = '#3c6c82aa';
+const SELECTED_COL_STROKE_COLOR = '#083d77dd';
 
 // From https://ourcodeworld.com/articles/read/491/how-to-retrieve-images-from-the-clipboard-with-javascript-in-the-browser:
 async function retrieveImageFromClipboardAsBlob(pasteEvent) {
@@ -44,12 +47,13 @@ function getRelativePointerPosition(node) {
 
 class Grid {
   constructor(layer, startPos, endPos, numRows, numColumns) {
+    this.startPos = startPos;
     this.numRows = numRows || 5;
     this.numColumns = numColumns || 5;
     this.rows = [];
     this.columns = [];
     this.selectedRow = 0;
-    this.selectedCol = 0;
+    this.selectedColumn = 1;
 
     this.boundingRect = new Konva.Rect({
       x: 0,
@@ -79,73 +83,144 @@ class Grid {
   }
 
   updateEndPos(endPos) {
-    this.boundingRect.width(endPos.x - this.group.x());
-    this.boundingRect.height(endPos.y - this.group.y());
+    const x = Math.min(this.startPos.x, endPos.x);
+    const y = Math.min(this.startPos.y, endPos.y);
+    const w = Math.abs(endPos.x - this.startPos.x);
+    const h = Math.abs(endPos.y - this.startPos.y);
+    this.group.x(x);
+    this.group.y(y);
+    this.boundingRect.width(w);
+    this.boundingRect.height(h);
     this.boundingRect.visible(true);
-
     this.updateRowsCols();
   }
 
   createRowsCols() {
-    const rowWidth = this.boundingRect.width();
-    const rowHeight = this.boundingRect.height() / this.numRows;
     if (this.numRows > this.rows.length) {
+      // Add rows.
       for (let i = this.rows.length; i < this.numRows; i++) {
+        const rowDims = this.rowDims(i);
         const rect = new Konva.Rect({
-          x: 0,
-          y: i * rowHeight,
-          width: rowWidth,
-          height: rowHeight,
+          x: rowDims.x,
+          y: rowDims.y,
+          width: rowDims.w,
+          height: rowDims.h,
           fill: ROW_FILL_COLOR,
           stroke: ROW_STROKE_COLOR,
-          strokeWidth: 2,
+          strokeWidth: 1,
           draggable: false
         });
         this.group.add(rect);
         this.rows.push(rect);
       }
     } else if (this.numRows < this.rows.length) {
+      // Delete rows.
       const deletedRows = this.rows.splice(this.numRows - this.rows.length);
       deletedRows.forEach(row => row.destroy());
+      if (this.selectedRow >= this.rows.length) this.cursorDown();
     }
-    if (this.numColumns != this.columns.length) {
 
+    if (this.numColumns > this.columns.length) {
+      // Add columns.
+      for (let j = this.columns.length; j < this.numColumns + 1; j++) {
+        const colDims = this.colDims(j);
+        const line = new Konva.Line({
+          x: colDims.x,
+          y: colDims.y,
+          points: colDims.points,
+          stroke: COL_STROKE_COLOR,
+          strokeWidth: 1,
+          draggable: false,
+          tension: 1
+        });
+        this.group.add(line);
+        this.columns.push(line);
+      }
     }
     this.updateRowsCols();
   }
 
   updateRowsCols() {
-    const rowWidth = this.boundingRect.width();
-    const rowHeight = this.boundingRect.height() / this.numRows;
     for (let i = 0; i < this.rows.length; i++) {
       const row = this.rows[i];
-      if ((this.numRows - i - 1) == this.selectedRow) {
+      if (i == this.selectedRow) {
         row.fill(SELECTED_ROW_FILL_COLOR);
         row.stroke(SELECTED_ROW_STROKE_COLOR);
       } else {
         row.fill(ROW_FILL_COLOR);
         row.stroke(ROW_STROKE_COLOR);
       }
-      row.y(i * rowHeight);
-      row.width(rowWidth);
-      row.height(rowHeight);
+      const rowDims = this.rowDims(i);
+      row.y(rowDims.y);
+      row.width(rowDims.w);
+      row.height(rowDims.h);
     }
+    for (let j = 0; j < this.columns.length; j++) {
+      const column = this.columns[j];
+      if (j == this.selectedColumn) {
+        column.stroke(SELECTED_COL_STROKE_COLOR);
+        column.strokeWidth(3);
+      } else {
+        column.stroke(COL_STROKE_COLOR);
+        column.strokeWidth(1);
+      }
+      const colDims = this.colDims(j);
+      column.x(colDims.x);
+      column.width(colDims.w);
+      column.points(colDims.points);
+    }
+  }
+
+  rowDims(i) {
+    const rowHeight = this.boundingRect.height() / this.numRows;
+    return {
+      h: rowHeight,
+      w: this.boundingRect.width(),
+      x: 0,
+      y: this.boundingRect.height() - (i + 1) * rowHeight
+    };
+  }
+
+  colDims(j) {
+    const colWidth = this.boundingRect.width() / this.numColumns;
+    const x = this.boundingRect.width() - j * colWidth;
+    return {
+      x: x,
+      y: 0,
+      points: [0, -10, 0, this.boundingRect.height() + 10]
+    };
   }
 
   deselect() {
     this.boundingRect.stroke('gray');
-    this.boundingRect.strokeWidth(1);
+    this.boundingRect.strokeWidth(2);
     return this;
   }
 
   select() {
     this.boundingRect.stroke('indianred');
-    this.boundingRect.strokeWidth(2);
+    this.boundingRect.strokeWidth(4);
+    this.boundingRect.dash([0, 0]);
     return this;
   }
 
   cursorUp() {
     this.selectedRow = Math.min(this.selectedRow + 1, this.numRows - 1);
+    this.updateRowsCols();
+  }
+
+  cursorDown() {
+    this.selectedRow = Math.max(this.selectedRow - 1, 0);
+    this.updateRowsCols();
+  }
+
+  cursorLeft() {
+    this.selectedColumn = Math.min(this.selectedColumn + 1, this.numColumns);
+    this.updateRowsCols();
+  }
+
+  cursorRight() {
+    this.selectedColumn = Math.max(this.selectedColumn - 1, 0);
     this.updateRowsCols();
   }
 
@@ -288,23 +363,23 @@ class App {
     switch (e.key) {
       case 'Down': // IE/Edge specific value
       case 'ArrowDown':
-        // Do something for 'down arrow' key press.
         if (!this.selectedGrid) break;
         this.selectedGrid.cursorDown();
         break;
       case 'Up': // IE/Edge specific value
       case 'ArrowUp':
-        // Do something for 'up arrow' key press.
         if (!this.selectedGrid) break;
         this.selectedGrid.cursorUp();
         break;
       case 'Left': // IE/Edge specific value
       case 'ArrowLeft':
-        // Do something for 'left arrow' key press.
+        if (!this.selectedGrid) break;
+        this.selectedGrid.cursorLeft();
         break;
       case 'Right': // IE/Edge specific value
       case 'ArrowRight':
-        // Do something for 'right arrow' key press.
+        if (!this.selectedGrid) break;
+        this.selectedGrid.cursorRight();
         break;
       case 'Enter':
         this.clickAction();
@@ -326,12 +401,20 @@ class App {
     console.log('Canvas click');
     switch (this.gridState) {
       case States.DESELECTED: {
-        if (grid) this.selectGrid(grid);
+        if (grid) {
+          this.selectGrid(grid);
+          this.gridState = States.SELECTED;
+        }
         break;
       }
       case States.SELECTED: {
-        this.deselectGrid();
-        if (grid) this.selectGrid(grid);
+        if (grid) {
+          this.selectGrid(grid);
+          this.gridState = States.SELECTED;
+        } else {
+          this.deselectGrid();
+          this.gridState = States.DESELECTED;
+        }
         break;
       }
       case States.AWAITING_GRID_START: {
@@ -345,12 +428,11 @@ class App {
         break;
       }
       case States.AWAITING_GRID_END: {
-        this.cancelPreview( /*destroy=*/ false);
-
         this.previewGrid
           .getGroup()
           .on('mousedown tap', this.makeGridClickHandler(this.previewGrid));
         this.selectGrid(this.previewGrid);
+        this.cancelPreview( /*destroy=*/ false);
 
         this.gridState = States.SELECTED;
         break;
@@ -425,6 +507,14 @@ class App {
               this.selectedGrid.removeRow();
               break;
             }
+            case 'add-col': {
+              this.selectedGrid.addColumn();
+              break;
+            }
+            case 'sub-col': {
+              this.selectedGrid.removeColumn();
+              break;
+            }
           }
           this.stage.batchDraw();
         });
@@ -434,7 +524,8 @@ class App {
   }
 
   selectGrid(grid) {
-    if (grid === this.selectedGrid) {
+    console.log('selecting', grid, this.selectedGrid);
+    if (grid !== this.selectedGrid) {
       this.deselectGrid();
     }
     if (!grid) return;
@@ -443,6 +534,7 @@ class App {
   }
 
   deselectGrid() {
+    console.log('deselecting');
     if (!this.selectedGrid) return;
     this.selectedGrid.deselect();
     this.selectedGrid = null;
@@ -465,6 +557,7 @@ class App {
     this.stage.container().style.cursor = 'default';
     this.stage.off('mousemove');
     if (destroy) this.destroyGrid(this.previewGrid);
+    this.previewGrid = null;
   }
 
   pasteImageBlobToLayer(imageBlob, layer) {
@@ -500,36 +593,5 @@ class App {
 }
 
 window.onload = () => {
-  // SETUP
   const app = new App('#container', '#controls', width, height);
-
-
-  // // ZOOM
-  // const scaleBy = 1.05;
-  // stage.on('wheel', (e) => {
-  //   e.evt.preventDefault();
-  //   const oldScale = stage.scaleX();
-
-  //   const pointer = stage.getPointerPosition();
-
-  //   const mousePointTo = {
-  //     x: (pointer.x - stage.x()) / oldScale,
-  //     y: (pointer.y - stage.y()) / oldScale,
-  //   };
-
-  //   const newScale =
-  //     e.evt.deltaY > 0 ? oldScale * scaleBy : oldScale / scaleBy;
-
-  //   stage.scale({
-  //     x: newScale,
-  //     y: newScale,
-  //   });
-
-  //   const newPos = {
-  //     x: pointer.x - mousePointTo.x * newScale,
-  //     y: pointer.y - mousePointTo.y * newScale,
-  //   };
-  //   stage.position(newPos);
-  //   stage.batchDraw();
-  // });
 };
