@@ -7,6 +7,10 @@ body {
     font-weight: 400;
 }
 
+.material-icons {
+    color: #4d2d52;
+}
+
 #stage-parent {
     width: 100%;
 }

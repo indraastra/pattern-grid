@@ -7,7 +7,7 @@ const ZOOM_SCALES_BY = 1.05;
 const GRID_STROKE_COLOR = '#CD5C5CAA';
 const ROW_FILL_COLOR = 'rgba(200, 200, 200, .1)';
 const ROW_STROKE_COLOR = '#f49d379a';
-const SELECTED_ROW_FILL_COLOR = '#fada5eaa';
+const SELECTED_ROW_FILL_COLOR = '#fada5e4a';
 const SELECTED_ROW_STROKE_COLOR = '#f49d37dd';
 const COL_STROKE_COLOR = '#3c6c82aa';
 const SELECTED_COL_STROKE_COLOR = '#083d77dd';
@@ -70,6 +70,7 @@ class Grid {
       x: startPos.x,
       y: startPos.y,
       draggable: true,
+      name: 'element'
     });
     this.group.add(this.boundingRect);
     layer.add(this.group);
@@ -259,6 +260,8 @@ const States = {
   SELECTED: 1,
   AWAITING_GRID_START: 2,
   AWAITING_GRID_END: 3,
+  LOCKED: 4,
+  UNLOCKED: 5
 };
 
 class App {
@@ -278,6 +281,7 @@ class App {
   initializeUI() {
     // UI state.
     this.gridState = States.DESELECTED;
+    this.lockState = States.UNLOCKED;
     this.selectedGrid = null;
     this.previewGrid = null;
 
@@ -418,9 +422,10 @@ class App {
         break;
       }
       case States.AWAITING_GRID_START: {
-        console.log('Awaiting start');
         const mousePos = getRelativePointerPosition(this.stage);
+        const draggable = this.lockState == States.UNLOCKED;
         this.previewGrid = new Grid(this.layer, mousePos);
+        this.previewGrid.getGroup().draggable(draggable);
 
         // Add handler for mouse movement.
         this.stage.on('mousemove', () => this.mouseMoveHandler());
@@ -471,6 +476,25 @@ class App {
     this.gridState = States.DESELECTED;
   }
 
+  toggleLockAction(e) {
+    switch (this.lockState) {
+      case States.UNLOCKED: {
+        this.stage.find('.element').forEach(element => {
+          element.draggable(false);
+        });
+        this.lockState = States.LOCKED;
+        break;
+      }
+      case States.LOCKED: {
+        this.stage.find('.element').forEach(element => {
+          element.draggable(true);
+        });
+        this.lockState = States.UNLOCKED;
+        break;
+      }
+    }
+  }
+
   /* Helpers */
   makeGridClickHandler(grid) {
     return (e) => {
@@ -492,6 +516,12 @@ class App {
       case 'delete-grid': {
         button.addEventListener('click', () => {
           this.deleteGridAction();
+        });
+        break;
+      }
+      case 'lock': {
+        button.addEventListener('click', () => {
+          this.toggleLockAction();
         });
         break;
       }
@@ -580,7 +610,8 @@ class App {
         image: img,
         width: imgWidth - 20,
         height: imgHeight - 20,
-        draggable: true,
+        draggable: this.lockState == States.UNLOCKED,
+        name: 'element'
       });
 
       layer.add(kImg);
