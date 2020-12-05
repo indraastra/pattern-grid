@@ -3,10 +3,14 @@
 const Konva = window.Konva;
 const width = window.innerWidth;
 const height = window.innerHeight;
+
+
 const ZOOM_SCALES_BY = 1.05;
+const MAX_ROWS = 125;
+const MAX_COLS = 125;
 const GRID_STROKE_COLOR = '#4d2d52dd';
-const ROW_FILL_COLOR = 'rgba(200, 200, 200, .1)';
-const ROW_STROKE_COLOR = '#f49d379a';
+const ROW_FILL_COLOR = 'rgba(200, 200, 200, .05)';
+const ROW_STROKE_COLOR = '#f49d376a';
 const SELECTED_ROW_FILL_COLOR = '#fada5e4a';
 const SELECTED_ROW_STROKE_COLOR = '#f49d37dd';
 const COL_STROKE_COLOR = '#3c6c82aa';
@@ -46,12 +50,12 @@ function getRelativePointerPosition(node) {
 }
 
 class Grid {
-  constructor(layer, startPos, endPos, numRows, numColumns) {
+  constructor(layer, startPos, endPos, numRows, numCols) {
     this.startPos = startPos;
     this.numRows = numRows || 5;
-    this.numColumns = numColumns || 5;
+    this.numCols = numCols || 5;
     this.rows = [];
-    this.columns = [];
+    this.cols = [];
     this.selectedRow = 0;
     this.selectedColumn = 1;
 
@@ -121,9 +125,9 @@ class Grid {
       if (this.selectedRow >= this.rows.length) this.cursorDown();
     }
 
-    if (this.numColumns > this.columns.length) {
-      // Add columns.
-      for (let j = this.columns.length; j < this.numColumns + 1; j++) {
+    if (this.numCols > this.cols.length) {
+      // Add cols.
+      for (let j = this.cols.length; j < this.numCols + 1; j++) {
         const colDims = this.colDims(j);
         const line = new Konva.Line({
           x: colDims.x,
@@ -135,8 +139,13 @@ class Grid {
           tension: 1
         });
         this.group.add(line);
-        this.columns.push(line);
+        this.cols.push(line);
       }
+    } else if (this.numCols < this.cols.length) {
+      // Delete cols.
+      const deletedCols = this.cols.splice(this.numCols - this.cols.length);
+      deletedCols.forEach(col => col.destroy());
+      if (this.selectedCol >= this.cols.length) this.cursorRight();
     }
     this.updateRowsCols();
   }
@@ -148,18 +157,20 @@ class Grid {
         row.name('selected');
         row.fill(SELECTED_ROW_FILL_COLOR);
         row.stroke(SELECTED_ROW_STROKE_COLOR);
+        row.strokeWidth(2);
       } else {
         row.removeName('selected');
         row.fill(ROW_FILL_COLOR);
         row.stroke(ROW_STROKE_COLOR);
+        row.strokeWidth(1);
       }
       const rowDims = this.rowDims(i);
       row.y(rowDims.y);
       row.width(rowDims.w);
       row.height(rowDims.h);
     }
-    for (let j = 0; j < this.columns.length; j++) {
-      const column = this.columns[j];
+    for (let j = 0; j < this.cols.length; j++) {
+      const column = this.cols[j];
       if (j == this.selectedColumn) {
         column.name('selected');
         column.stroke(SELECTED_COL_STROKE_COLOR);
@@ -187,7 +198,7 @@ class Grid {
   }
 
   colDims(j) {
-    const colWidth = this.boundingRect.width() / this.numColumns;
+    const colWidth = this.boundingRect.width() / this.numCols;
     const x = this.boundingRect.width() - j * colWidth;
     return {
       x: x,
@@ -198,7 +209,7 @@ class Grid {
 
   deselect() {
     this.group.getChildren(n => !n.hasName('selected')).stroke(
-      'gray');
+      '#aaaaaaaa');
     this.boundingRect.strokeWidth(2);
     return this;
   }
@@ -222,7 +233,7 @@ class Grid {
   }
 
   cursorLeft() {
-    this.selectedColumn = Math.min(this.selectedColumn + 1, this.numColumns);
+    this.selectedColumn = Math.min(this.selectedColumn + 1, this.numCols);
     this.updateRowsCols();
   }
 
@@ -236,23 +247,33 @@ class Grid {
     this.updateRowsCols();
   }
 
-  addRow() {
-    this.numRows += 1;
+  addRows(n) {
+    this.numRows = Math.min(this.numRows + n, MAX_ROWS);
     this.createRowsCols();
   }
 
-  removeRow() {
-    this.numRows = Math.max(this.numRows - 1, 1);
+  removeRows(n) {
+    this.numRows = Math.max(this.numRows - n, 1);
     this.createRowsCols();
   }
 
-  addColumn() {
-    this.numColumns += 1;
+  setRows(n) {
+    this.numRows = Math.min(Math.max(n, 0), MAX_ROWS);
     this.createRowsCols();
   }
 
-  removeColumn() {
-    this.columns = Math.max(this.numColumns - 1, 1);
+  addCols(n) {
+    this.numCols = Math.min(this.numCols + n, MAX_ROWS);
+    this.createRowsCols();
+  }
+
+  removeCols(n) {
+    this.numCols = Math.max(this.numCols - n, 1);
+    this.createRowsCols();
+  }
+
+  setCols(n) {
+    this.numCols = Math.min(Math.max(n, 0), MAX_COLS);
     this.createRowsCols();
   }
 
@@ -320,6 +341,14 @@ class App {
     this.stage.on('mousedown touchstart', () => this.clickAction());
     this.controls.querySelectorAll('button').forEach((el) => this
       .makeControlClickHandler(el));
+    this.controls.querySelectorAll('form').forEach((form) => {
+      console.log(form);
+      form.addEventListener('submit', (e) => {
+        console.log(e);
+        this.updateGridFromInputs(this.selectedGrid);
+        e.preventDefault();
+      });
+    });
   }
 
   /* Event handlers */
@@ -392,7 +421,9 @@ class App {
         this.selectedGrid.cursorRight();
         break;
       case 'Enter':
-        this.clickAction();
+        if (this.gridState == States.AWAITING_GRID_END) {
+          this.clickAction();
+        }
         break;
       case 'Esc': // IE/Edge specific value
       case 'Escape':
@@ -429,7 +460,12 @@ class App {
       case States.AWAITING_GRID_START: {
         const mousePos = getRelativePointerPosition(this.stage);
         const draggable = this.lockState == States.UNLOCKED;
-        this.previewGrid = new Grid(this.layer, mousePos);
+        const numRows = parseInt(this.controls.querySelector('.num-rows')
+          .value) || 5;
+        const numCols = parseInt(this.controls.querySelector('.num-cols')
+          .value) || 5;
+        this.previewGrid = new Grid(this.layer, mousePos, null, numRows,
+          numCols);
         this.previewGrid.getGroup().draggable(draggable);
 
         // Add handler for mouse movement.
@@ -440,7 +476,8 @@ class App {
       case States.AWAITING_GRID_END: {
         this.previewGrid
           .getGroup()
-          .on('mousedown tap', this.makeGridClickHandler(this.previewGrid));
+          .on('mousedown tap', this.makeGridClickHandler(this
+            .previewGrid));
         this.selectGrid(this.previewGrid);
         this.cancelPreview( /*destroy=*/ false);
 
@@ -535,22 +572,26 @@ class App {
           if (!this.selectedGrid) return;
           switch (action) {
             case 'add-row': {
-              this.selectedGrid.addRow();
+              this.selectedGrid.addRows(1);
               break;
             }
             case 'sub-row': {
-              this.selectedGrid.removeRow();
+              this.selectedGrid.removeRows(1);
               break;
             }
             case 'add-col': {
-              this.selectedGrid.addColumn();
+              console.log('adding col');
+              this.selectedGrid.addCols(1);
               break;
             }
             case 'sub-col': {
-              this.selectedGrid.removeColumn();
+              console.log('subbing col');
+              this.selectedGrid.removeCols(1);
               break;
             }
           }
+
+          this.updateInputsFromGrid(this.selectedGrid);
           this.stage.batchDraw();
         });
         break;
@@ -564,6 +605,7 @@ class App {
     }
     if (!grid) return;
     this.selectedGrid = grid.select();
+    this.updateInputsFromGrid(grid);
     this.stage.batchDraw();
   }
 
@@ -593,6 +635,22 @@ class App {
     this.previewGrid = null;
   }
 
+  updateInputsFromGrid(grid) {
+    if (!grid) return;
+    this.controls.querySelector('.num-rows').value = grid.numRows;
+    this.controls.querySelector('.num-cols').value = grid.numCols;
+  }
+
+  updateGridFromInputs(grid) {
+    if (!grid) return;
+    const numRows = parseInt(this.controls.querySelector('.num-rows')
+      .value);
+    const numCols = parseInt(this.controls.querySelector('.num-cols')
+      .value);
+    grid.setRows(numRows);
+    grid.setCols(numCols);
+  }
+
   pasteImageBlobToLayer(imageBlob, layer) {
     if (!imageBlob) return;
     const img = new Image();
@@ -607,12 +665,13 @@ class App {
         imgWidth = width;
         imgHeight = img.height / img.width * imgWidth;
       }
+      const padding = 60;
       const kImg = new Konva.Image({
-        x: (width - imgWidth) / 2 + 10,
-        y: (height - imgHeight) / 2 + 10,
+        x: (width - imgWidth) / 2 + padding,
+        y: (height - imgHeight) / 2 + padding,
         image: img,
-        width: imgWidth - 20,
-        height: imgHeight - 20,
+        width: imgWidth - padding - 10,
+        height: imgHeight - padding - 10,
         draggable: this.lockState == States.UNLOCKED,
         name: 'element'
       });

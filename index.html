@@ -19,28 +19,33 @@
     <div id="container"></div>
   </div>
   <div id="controls">
-    <div>
+    <div class="control-group">
       <span>Grid</span>
       <button class="draw-grid"><span
           class="material-icons">grid_on</span></button>
       <button class="delete-grid"><span
           class="material-icons">delete_forever</span></button></div>
-    <div>
+    <div class="control-group">
       <span>Rows</span>
+      <form class="grid-form"><input class="num-rows" value="5"></form>
       <button class="add-row"><span
           class="material-icons">exposure_plus_1</span></button>
       <button class="sub-row"><span
-          class="material-icons">exposure_minus_1</span></button></div>
-    <div>
+          class="material-icons">exposure_minus_1</span></button>
+    </div>
+    <div class="control-group">
       <span>Columns</span>
+      <form class="grid-form"><input class="num-cols" value="5"></form>
       <button class="add-col"><span
           class="material-icons">exposure_plus_1</span></button>
       <button class="sub-col"><span
-          class="material-icons">exposure_minus_1</span></button></div>
-    <div>
+          class="material-icons">exposure_minus_1</span></button>
+    </div>
+    <div class="control-group">
       <span>Canvas</span>
       <button class="lock"><span
-          class="material-icons">lock_open</span></button></div>
+          class="material-icons">lock_open</span></button>
+    </div>
   </div>
   <script src="main.js"></script>
 </body>

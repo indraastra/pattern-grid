@@ -17,7 +17,7 @@ body {
 
 #controls {
     position: absolute;
-    top: 15px;
+    top: 0;
     left: 50%;
     padding: 5px;
     transform: translateX(-50%);
@@ -47,14 +47,24 @@ body {
     border: 1px solid gray;
 }
 
-#controls>div {
+#controls input {
+    padding: 5px;
+    margin-left: 3px;
+    margin-right: 3px;
+    border: 1px solid whitesmoke;
+    border-radius: 3px;
+    background-color: white;
+    width: 30px;
+}
+
+#controls .control-group {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: center;
 }
 
-#controls>div {
+#controls .control-group {
     border-left: 5px solid #4d2d52;
     border-right: 5px solid #4d2d52;
     padding-left: 5px;
@@ -62,10 +72,19 @@ body {
     background-color: #4d2d52;
     color: white;
     padding: 5px;
+    display: flex;
+    align-items: stretch;
 }
 
-#controls>div>span {
+#controls form {
+    display: flex;
+    align-items: stretch;
+}
+
+#controls .control-group>span {
     margin-right: 5px;
+    display: inline-flex;
+    align-items: center;
 }
 
 #controls>div:first-of-type {
