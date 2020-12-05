@@ -44,4 +44,34 @@ body {
 #controls button:hover {
     font-weight: bold;
     background-color: silver;
+    border: 1px solid gray;
+}
+
+#controls>div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+}
+
+#controls>div {
+    border-left: 5px solid #4d2d52;
+    border-right: 5px solid #4d2d52;
+    padding-left: 5px;
+    border-radius: 5px;
+    background-color: #4d2d52;
+    color: white;
+    padding: 5px;
+}
+
+#controls>div>span {
+    margin-right: 5px;
+}
+
+#controls>div:first-of-type {
+    margin-left: 0;
+}
+
+#controls>div {
+    margin-left: 20px;
 }

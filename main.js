@@ -4,7 +4,7 @@ const Konva = window.Konva;
 const width = window.innerWidth;
 const height = window.innerHeight;
 const ZOOM_SCALES_BY = 1.05;
-const GRID_STROKE_COLOR = '#CD5C5CAA';
+const GRID_STROKE_COLOR = '#4d2d52dd';
 const ROW_FILL_COLOR = 'rgba(200, 200, 200, .1)';
 const ROW_STROKE_COLOR = '#f49d379a';
 const SELECTED_ROW_FILL_COLOR = '#fada5e4a';
@@ -60,7 +60,7 @@ class Grid {
       y: 0,
       width: 0,
       height: 0,
-      stroke: 'indianred',
+      stroke: GRID_STROKE_COLOR,
       strokeWidth: 2,
       dash: [3, 3],
       draggable: false
@@ -145,9 +145,11 @@ class Grid {
     for (let i = 0; i < this.rows.length; i++) {
       const row = this.rows[i];
       if (i == this.selectedRow) {
+        row.name('selected');
         row.fill(SELECTED_ROW_FILL_COLOR);
         row.stroke(SELECTED_ROW_STROKE_COLOR);
       } else {
+        row.removeName('selected');
         row.fill(ROW_FILL_COLOR);
         row.stroke(ROW_STROKE_COLOR);
       }
@@ -159,9 +161,11 @@ class Grid {
     for (let j = 0; j < this.columns.length; j++) {
       const column = this.columns[j];
       if (j == this.selectedColumn) {
+        column.name('selected');
         column.stroke(SELECTED_COL_STROKE_COLOR);
         column.strokeWidth(3);
       } else {
+        column.removeName('selected');
         column.stroke(COL_STROKE_COLOR);
         column.strokeWidth(1);
       }
@@ -193,15 +197,17 @@ class Grid {
   }
 
   deselect() {
-    this.boundingRect.stroke('gray');
+    this.group.getChildren(n => !n.hasName('selected')).stroke(
+      'gray');
     this.boundingRect.strokeWidth(2);
     return this;
   }
 
   select() {
-    this.boundingRect.stroke('indianred');
+    this.boundingRect.stroke(GRID_STROKE_COLOR);
     this.boundingRect.strokeWidth(4);
     this.boundingRect.dash([0, 0]);
+    this.updateRowsCols();
     return this;
   }
 
@@ -402,7 +408,6 @@ class App {
 
   /* State transitions */
   clickAction(grid) {
-    console.log('Canvas click');
     switch (this.gridState) {
       case States.DESELECTED: {
         if (grid) {
@@ -554,7 +559,6 @@ class App {
   }
 
   selectGrid(grid) {
-    console.log('selecting', grid, this.selectedGrid);
     if (grid !== this.selectedGrid) {
       this.deselectGrid();
     }
@@ -564,7 +568,6 @@ class App {
   }
 
   deselectGrid() {
-    console.log('deselecting');
     if (!this.selectedGrid) return;
     this.selectedGrid.deselect();
     this.selectedGrid = null;
